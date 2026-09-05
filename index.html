@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swing Trading Toolkit — Canada</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Swing Trading Toolkit <span class="flag">🇨🇦</span></h1>
+      <p class="tagline">Working toward <strong>$2,000/week</strong> swing trading the Canadian market, around a full-time job — with the math kept honest.</p>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" aria-label="Sections">
+    <button class="tab-btn active" data-tab="reality">Reality Check</button>
+    <button class="tab-btn" data-tab="sizer">Position Sizer</button>
+    <button class="tab-btn" data-tab="journal">Trade Journal</button>
+    <button class="tab-btn" data-tab="playbook">Canada Playbook</button>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ============ REALITY CHECK ============ -->
+    <section id="tab-reality" class="tab-panel active">
+      <div class="card callout">
+        <h2>The math first</h2>
+        <p>$2,000/week is roughly <strong>$104,000/year</strong>. That is a 20% annual return on $520,000 — or a 200%+ annual return on $50,000.
+        For context: the S&amp;P/TSX Composite has returned roughly 7–9%/year over the long run, most professional fund managers fail to beat it
+        consistently, and large academic studies of retail traders repeatedly find the majority lose money after costs.</p>
+        <p>None of that makes the goal impossible — it makes it a <strong>capital + edge + years</strong> problem rather than a quick-setup problem.
+        Use the calculator below to see exactly what your target implies, then work the phases in the <a href="#" data-goto="playbook">Playbook</a>.</p>
+      </div>
+
+      <div class="card">
+        <h3>Your assumptions</h3>
+        <div class="input-grid">
+          <label>Account size (CAD)<input type="number" id="rc-account" value="50000" min="0" step="1000"></label>
+          <label>Risk per trade (% of account)<input type="number" id="rc-risk" value="1.0" min="0.05" max="10" step="0.05"></label>
+          <label>Win rate (%)<input type="number" id="rc-winrate" value="40" min="1" max="99" step="1"></label>
+          <label>Avg reward : risk (R)<input type="number" id="rc-rr" value="2.0" min="0.1" step="0.1"></label>
+          <label>Trades per week<input type="number" id="rc-trades" value="3" min="1" max="25" step="1"></label>
+          <label>Cost per trade, round trip ($)<input type="number" id="rc-cost" value="10" min="0" step="1"></label>
+          <label>Weekly target ($)<input type="number" id="rc-target" value="2000" min="0" step="100"></label>
+          <label>Simulation seed<input type="number" id="rc-seed" value="42" step="1"></label>
+        </div>
+        <p class="fine">A 40% win rate with 2R average winners is a <em>competent, developing</em> trader. Most beginners run negative expectancy
+        after costs — set these to what your own journal proves, not what you hope.</p>
+        <div id="rc-warning" class="warning" hidden></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Expected value (closed-form)</h3>
+          <dl class="stat-list">
+            <div><dt>Edge per trade</dt><dd id="rc-edge">–</dd></div>
+            <div><dt>Risk per trade ($)</dt><dd id="rc-risk-dollars">–</dd></div>
+            <div><dt>Expectancy per trade</dt><dd id="rc-exp-trade">–</dd></div>
+            <div><dt>Expected weekly P&amp;L</dt><dd id="rc-exp-week">–</dd></div>
+            <div><dt>Weekly return on account</dt><dd id="rc-week-pct">–</dd></div>
+            <div><dt>Implied annual (simple)</dt><dd id="rc-annual-simple">–</dd></div>
+            <div><dt>Implied annual (compounded)</dt><dd id="rc-annual-comp">–</dd></div>
+            <div><dt>Account needed for target</dt><dd id="rc-required">–</dd></div>
+            <div><dt>Expected worst losing streak / year</dt><dd id="rc-streak">–</dd></div>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h3>Monte Carlo — one simulated year <button id="rc-run" class="btn small">Re-run</button></h3>
+          <dl class="stat-list">
+            <div><dt>Median ending equity</dt><dd id="mc-median">–</dd></div>
+            <div><dt>10th–90th percentile</dt><dd id="mc-range">–</dd></div>
+            <div><dt>Years ending at a loss</dt><dd id="mc-losing">–</dd></div>
+            <div><dt>Median max drawdown</dt><dd id="mc-dd">–</dd></div>
+            <div><dt>Runs that lost half the account</dt><dd id="mc-ruin">–</dd></div>
+            <div><dt>Weeks hitting the target</dt><dd id="mc-weeks-hit">–</dd></div>
+            <div><dt>Losing weeks</dt><dd id="mc-weeks-neg">–</dd></div>
+          </dl>
+          <p class="fine" id="mc-note">1,000 simulated years of 52 weeks, risk compounding at your % per trade. Same seed → same result.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Simulated equity curves (sample of runs)</h3>
+        <canvas id="mc-curves" width="760" height="280"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Distribution of weekly P&amp;L across all simulated weeks</h3>
+        <canvas id="mc-hist" width="760" height="220"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>What $<span id="rc-target-label">2,000</span>/week takes at different account sizes</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Account</th><th>Weekly return needed</th><th>Annual (simple)</th><th>Annual (compounded)</th><th>Verdict</th></tr></thead>
+            <tbody id="rc-table-body"></tbody>
+          </table>
+        </div>
+        <p class="fine">Benchmarks: TSX long-run total return ≈ 7–9%/yr. Sustained 20–30%/yr puts you among the best professionals alive.
+        Anything implying 100%+/yr, sustained, is not a planning assumption — it's a lottery ticket.</p>
+      </div>
+    </section>
+
+    <!-- ============ POSITION SIZER ============ -->
+    <section id="tab-sizer" class="tab-panel">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Position size calculator</h3>
+          <div class="input-grid">
+            <label>Account size (CAD)<input type="number" id="ps-account" value="50000" min="0" step="1000"></label>
+            <label>Risk per trade (%)<input type="number" id="ps-risk" value="1.0" min="0.05" max="10" step="0.05"></label>
+            <label>Entry price<input type="number" id="ps-entry" placeholder="e.g. 24.50" min="0" step="0.01"></label>
+            <label>Stop price<input type="number" id="ps-stop" placeholder="e.g. 23.20" min="0" step="0.01"></label>
+            <label>Target price (optional)<input type="number" id="ps-target" placeholder="e.g. 27.10" min="0" step="0.01"></label>
+            <label>Fees, round trip ($)<input type="number" id="ps-fees" value="10" min="0" step="1"></label>
+          </div>
+          <div id="ps-hint" class="fine">Enter an entry and a stop. Stop below entry = long; stop above entry = short.</div>
+          <div id="ps-warnings" class="warning" hidden></div>
+        </div>
+
+        <div class="card">
+          <h3>Result <span id="ps-direction" class="badge" hidden></span></h3>
+          <dl class="stat-list">
+            <div><dt>Risk per share</dt><dd id="ps-riskshare">–</dd></div>
+            <div><dt>Shares to buy/sell</dt><dd id="ps-shares">–</dd></div>
+            <div><dt>Position cost</dt><dd id="ps-cost">–</dd></div>
+            <div><dt>% of account deployed</dt><dd id="ps-pct">–</dd></div>
+            <div><dt>Reward : risk to target</dt><dd id="ps-rr">–</dd></div>
+            <div><dt>Loss if stopped (incl. fees)</dt><dd id="ps-loss">–</dd></div>
+            <div><dt>Gain at target (incl. fees)</dt><dd id="ps-gain">–</dd></div>
+            <div><dt>Breakeven price (fees covered)</dt><dd id="ps-breakeven">–</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Pre-trade checklist <span class="badge" id="ps-check-score">0 / 8</span> <button class="btn small" id="ps-check-reset">Reset</button></h3>
+        <div id="ps-checklist" class="checklist">
+          <label><input type="checkbox" class="check"> The setup matches ONE of my written playbook setups (not an impulse).</label>
+          <label><input type="checkbox" class="check"> Liquidity: averages &gt; $1M daily dollar-volume — I can exit without moving the price.</label>
+          <label><input type="checkbox" class="check"> No earnings, dividend, or known binary event before my expected exit window.</label>
+          <label><input type="checkbox" class="check"> Reward : risk is at least 2 : 1 to a realistic target.</label>
+          <label><input type="checkbox" class="check"> Position sized above — risking ≤ 1% and ≤ 25% of account in one name.</label>
+          <label><input type="checkbox" class="check"> Stop-loss order will be placed AT THE BROKER, not kept "in my head".</label>
+          <label><input type="checkbox" class="check"> This keeps me at ≤ 5 open positions total.</label>
+          <label><input type="checkbox" class="check"> I've logged the plan (entry / stop / target / thesis) in the journal BEFORE entering.</label>
+        </div>
+        <p class="fine">If you can't tick all eight, the trade waits. There is always another trade; there is not always more capital.</p>
+      </div>
+    </section>
+
+    <!-- ============ TRADE JOURNAL ============ -->
+    <section id="tab-journal" class="tab-panel">
+      <div class="card">
+        <h3>Log a trade</h3>
+        <form id="jr-form">
+          <div class="input-grid">
+            <label>Open date<input type="date" id="jr-date" required></label>
+            <label>Symbol<input type="text" id="jr-symbol" placeholder="e.g. SHOP.TO" required maxlength="12"></label>
+            <label>Market
+              <select id="jr-market">
+                <option>TSX</option><option>TSXV</option><option>CSE</option><option>Cboe CA</option><option>US</option>
+              </select>
+            </label>
+            <label>Direction
+              <select id="jr-dir"><option value="long">Long</option><option value="short">Short</option></select>
+            </label>
+            <label>Shares<input type="number" id="jr-shares" min="1" step="1" required></label>
+            <label>Entry price<input type="number" id="jr-entry" min="0" step="0.001" required></label>
+            <label>Stop price<input type="number" id="jr-stop" min="0" step="0.001" required></label>
+            <label>Exit price (blank = open)<input type="number" id="jr-exit" min="0" step="0.001"></label>
+            <label>Close date<input type="date" id="jr-close-date"></label>
+            <label>Fees, round trip ($)<input type="number" id="jr-fees" value="10" min="0" step="0.01"></label>
+            <label>Setup
+              <select id="jr-setup">
+                <option>Breakout</option><option>Pullback</option><option>Trend continuation</option>
+                <option>Reversal</option><option>Earnings drift</option><option>Other</option>
+              </select>
+            </label>
+            <label class="span-2">Notes<input type="text" id="jr-notes" placeholder="Thesis, what you saw, how you felt…" maxlength="300"></label>
+          </div>
+          <button type="submit" class="btn">Add trade</button>
+          <span class="fine" id="jr-io-status"></span>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Performance</h3>
+        <dl class="stat-list cols-3">
+          <div><dt>Closed trades</dt><dd id="js-count">0</dd></div>
+          <div><dt>Open trades</dt><dd id="js-open">0</dd></div>
+          <div><dt>Win rate</dt><dd id="js-winrate">–</dd></div>
+          <div><dt>Expectancy / trade</dt><dd id="js-expd">–</dd></div>
+          <div><dt>Expectancy (R)</dt><dd id="js-expr">–</dd></div>
+          <div><dt>Profit factor</dt><dd id="js-pf">–</dd></div>
+          <div><dt>Avg win</dt><dd id="js-avgwin">–</dd></div>
+          <div><dt>Avg loss</dt><dd id="js-avgloss">–</dd></div>
+          <div><dt>Total P&amp;L</dt><dd id="js-total">–</dd></div>
+        </dl>
+        <p class="stat-banner" id="js-weekly4">No closed trades yet — your 4-week average vs. the $2,000 target will appear here.</p>
+      </div>
+
+      <div class="card">
+        <h3>Weekly P&amp;L (last 26 weeks)</h3>
+        <canvas id="jr-weekly" width="760" height="220"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Equity curve (cumulative closed P&amp;L)</h3>
+        <canvas id="jr-equity" width="760" height="220"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Trades</h3>
+        <div class="btn-row">
+          <button class="btn small" id="jr-export">Export CSV</button>
+          <button class="btn small" id="jr-import-btn">Import CSV</button>
+          <input type="file" id="jr-import-file" accept=".csv" hidden>
+          <button class="btn small danger" id="jr-clear">Clear all</button>
+        </div>
+        <div id="jr-empty" class="fine">No trades logged yet. Everything is stored locally in your browser (localStorage) — export CSV for backups.</div>
+        <div class="table-scroll">
+          <table id="jr-table">
+            <thead><tr>
+              <th>Opened</th><th>Symbol</th><th>Mkt</th><th>Dir</th><th>Shares</th><th>Entry</th><th>Stop</th>
+              <th>Exit</th><th>P&amp;L</th><th>R</th><th>Setup</th><th></th>
+            </tr></thead>
+            <tbody id="jr-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CANADA PLAYBOOK ============ -->
+    <section id="tab-playbook" class="tab-panel">
+      <div class="card callout">
+        <h2>Read this first</h2>
+        <p>Large academic studies of retail traders — Taiwanese day-trading records, Brazilian futures traders, multiple brokerage datasets —
+        consistently find that the large majority of active traders <strong>lose money after costs</strong> over multi-year periods, and that the
+        share who earn a consistent professional income is a fraction of one percent. The people who make it treat it as a skilled trade with a
+        multi-year apprenticeship, not an income hack.</p>
+        <p>So reframe the goal: <strong>first prove positive expectancy over 100+ trades, then scale capital.</strong> Income is the output of
+        edge × capital × time. The Reality Check tab shows the honest arithmetic; the phases below are the path.</p>
+      </div>
+
+      <div class="card">
+        <h3>The staged roadmap (edge first, dollars later)</h3>
+        <ol class="roadmap">
+          <li><strong>Phase 0 — Foundations (4–8 weeks).</strong> Pick ONE setup (e.g. pullback-in-uptrend or breakout) and write rules for it:
+            what qualifies, where the stop goes, where the target is, when you're wrong. Build a nightly scan routine. Read: <em>Trading in the
+            Zone</em> (Douglas), <em>Trade Like a Stock Market Wizard</em> (Minervini), <em>The Daily Trading Coach</em> (Steenbarger).</li>
+          <li><strong>Phase 1 — Paper trade (8–12 weeks).</strong> Trade the setup in a simulator or on paper exactly as written, logged in the
+            Journal tab. <em>Gate to pass:</em> ≥ 30 trades, positive expectancy after realistic costs, complete journal.</li>
+          <li><strong>Phase 2 — Small real money (3–6 months).</strong> Real orders, 0.25–0.5% risk per trade. Real fills, real slippage, real
+            emotions. <em>Gate:</em> ≥ 50 trades, expectancy ≥ +0.2R, max drawdown &lt; 10%, rules followed on ≥ 90% of trades.</li>
+          <li><strong>Phase 3 — Scale (ongoing).</strong> Raise risk to ~1%, add a second setup, add capital only as the stats hold. Reassess
+            quarterly against the Reality Check numbers. This is the phase where the weekly-income question becomes real — not before.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>Your first 30 days (start tonight — none of this needs money at risk)</h3>
+        <ul>
+          <li><strong>Week 1 — Plumbing.</strong> Open or dust off a self-directed account at a broker with bracket/OCO and GTC stop orders
+            (see the table below) and find its paper-trading or demo mode. Read the first half of <em>Trading in the Zone</em>.
+            Log one fake trade in the Journal tab and export the CSV so you know backups work.</li>
+          <li><strong>Week 2 — One setup, in writing.</strong> Pick a single setup (e.g. pullback-in-uptrend) and write its rules: what
+            qualifies, the entry trigger, where the stop goes, where the target is, what invalidates it. Build a watchlist of ~20 TSX names
+            passing the $1M daily dollar-volume filter. No trading yet.</li>
+          <li><strong>Week 3 — Paper trading begins.</strong> Run the evening routine below for real: scan, plan, size with the Position
+            Sizer, "place" the paper orders. Log every trade — and every setup you skipped, with why. The checklist tab is mandatory.</li>
+          <li><strong>Week 4 — First stats review.</strong> Read your journal's win rate, average R and expectancy. Whatever they say, the
+            answer is "keep paper trading" — the Phase 1 gate is 30+ trades, and 30 days can't produce that. The habit is the win.</li>
+        </ul>
+        <p class="fine">Nothing in month one requires risking a dollar, quitting anything, or being right about the market. It requires
+        about 45 minutes on weeknights — which is also exactly what the real thing will require.</p>
+      </div>
+
+      <div class="card">
+        <h3>Trading around a full-time job</h3>
+        <p>Swing trading (holding days to weeks) is the <em>only</em> style compatible with a 9–5 — day trading needs the open, and the open is
+        when you're at work. The job is an advantage: it pays the bills so you never need to force a trade.</p>
+        <ul>
+          <li><strong>Evening routine (30–45 min, after 4pm ET close):</strong> review open positions → run your scan → shortlist setups →
+            size them (Position Sizer tab) → queue the orders: a limit entry with an attached stop-loss and target
+            (<strong>bracket / OCO orders</strong> — pick a broker that supports them, and use GTC for stops).</li>
+          <li><strong>Morning (5 min before 9:30 ET):</strong> check for overnight news on your names; confirm orders are live. No impulse
+            market orders at the open — your limits either fill or they don't.</li>
+          <li><strong>During work: nothing.</strong> Price alerts on your phone do the watching. If a position needs babysitting, it was sized
+            wrong or stopped wrong.</li>
+          <li><strong>Weekend (1 hr):</strong> journal review, update stats, rebuild the watchlist, check market regime (is the TSX above its
+            200-day average? Is breadth healthy?). Trade smaller — or not at all — in hostile regimes.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Canadian market mechanics</h3>
+        <ul>
+          <li><strong>Exchanges:</strong> TSX (large caps), TSX Venture (speculative small caps), CSE, Cboe Canada. Hours 9:30–16:00 ET.
+            Stick to TSX names early — much of the TSXV/CSE is too illiquid to swing trade safely.</li>
+          <li><strong>Liquidity filter:</strong> the TSX is thinner than US markets. Require ≥ $1M average daily dollar-volume (price × volume)
+            so your exit doesn't move the market. That still leaves 200+ tradeable names.</li>
+          <li><strong>Concentration:</strong> the index is heavy in financials, energy and materials — your "diversified" three positions can be
+            one oil bet in disguise. Cap correlated exposure.</li>
+          <li><strong>No US-style PDT rule:</strong> the American $25k pattern-day-trader minimum is a FINRA rule and doesn't apply at Canadian
+            brokers (normal margin rules still do). Swing trading sidesteps it anyway.</li>
+          <li><strong>Interlisted names &amp; FX:</strong> many large TSX companies also trade in New York in USD. If you trade US-listed stock,
+            watch currency conversion costs (~1.5% each way at some brokers) — journalling in CAD keeps your stats honest. "Norbert's gambit"
+            is the classic cheap CAD↔USD conversion technique worth reading about.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Accounts &amp; taxes — general info, not advice</h3>
+        <p class="fine">Rules change and facts below are general, as of late 2025 / early 2026. Verify with the CRA and a licensed accountant
+        before relying on any of it.</p>
+        <ul>
+          <li><strong>TFSA — careful.</strong> Gains are tax-free for <em>investing</em>, but the CRA can treat frequent, short-hold,
+            business-like trading as running a business <em>inside</em> the TFSA and tax the profits as income — courts have upheld this against
+            active traders. Occasional multi-week swings are a very different picture than constant turnover, but if your plan is high-frequency
+            swing trading, get professional advice before doing it in a TFSA.</li>
+          <li><strong>RRSP:</strong> tax-deferred growth and the business-income issue effectively doesn't arise the same way, but losses are
+            trapped (no claiming them) and withdrawals are taxed income. US-listed dividends are treaty-exempt in an RRSP but face 15%
+            withholding in a TFSA.</li>
+          <li><strong>Non-registered (cash/margin):</strong> the default for an active trading experiment. Capital gains are currently taxed on a
+            50% inclusion basis (a proposed increase was shelved in 2025 — verify the current rate). If the CRA deems your activity a business
+            (frequency, short holds, leverage, time spent), gains become fully-taxed business income — and losses fully deductible.</li>
+          <li><strong>Superficial loss rule — swing traders trip on this:</strong> sell at a loss and re-buy the same security within 30 days
+            (before or after, you or affiliated accounts) and the loss is denied for tax (it's added to the new position's cost base instead).
+            Re-entering a favourite name two weeks later is exactly this.</li>
+          <li><strong>Record-keeping:</strong> your broker's T5008 slips need checking against your own adjusted-cost-base records, in CAD,
+            including USD trades converted at the transaction-date rate. The journal's CSV export gives you the raw data.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Brokerage landscape (verify current pricing)</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Broker</th><th>Commissions (equities)</th><th>Notes for swing traders</th></tr></thead>
+            <tbody>
+              <tr><td>National Bank Direct Brokerage</td><td>$0</td><td>First big-bank zero-commission broker; basic but solid.</td></tr>
+              <tr><td>Wealthsimple</td><td>$0 (CAD)</td><td>Simple; ~1.5% FX on US trades unless you hold a USD account (paid tiers); check order-type support (GTC/stop) before committing.</td></tr>
+              <tr><td>Questrade</td><td>$0 (moved to zero in 2025)</td><td>Good platform and order types; long-time self-directed favourite.</td></tr>
+              <tr><td>Interactive Brokers Canada</td><td>~$1/trade</td><td>Best order types (true brackets/OCO), margin rates and data — the working swing trader's tool.</td></tr>
+              <tr><td>Big-bank brokers (TD, RBC, BMO…)</td><td>~$9.99</td><td>Fine if you're there anyway; commissions drag on small accounts.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fine">What actually matters for this plan: GTC stop orders, bracket/OCO support (enter with stop + target attached), reliable
+        mobile alerts, and cheap CAD↔USD conversion if you'll touch US names.</p>
+      </div>
+
+      <div class="card">
+        <h3>Risk rules that keep you alive</h3>
+        <ul>
+          <li><strong>1% rule:</strong> never risk more than 1% of the account between entry and stop (0.25–0.5% while proving the edge).</li>
+          <li><strong>Max 3–5 open positions.</strong> More is unmanageable around a job, and correlated positions count as one.</li>
+          <li><strong>Weekly circuit breaker:</strong> down 3R in a week → flat, no new trades until Monday. Losing streaks are when accounts die.</li>
+          <li><strong>Never average down. Never move a stop away from price.</strong> The stop is the definition of "I was wrong."</li>
+          <li><strong>No earnings holds</strong> until 100+ journalled trades prove you have an edge that survives binary events.</li>
+          <li><strong>Journal every trade</strong> — the Journal tab computes the only numbers that matter: expectancy, profit factor, drawdown.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><strong>Educational tools only.</strong> Nothing here is investment, tax, or legal advice, and nothing here recommends any security.
+      Claude is not a licensed financial advisor. Trading involves a substantial risk of loss — most active retail traders lose money.
+      Verify tax and brokerage details with the CRA or a licensed professional; rules and pricing change. All data stays in your browser.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
