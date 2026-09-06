@@ -10,6 +10,7 @@ Planning, sizing, journalling and reality-check tools for swing trading the Cana
 - **Position Sizer** — entry/stop/target → shares, capped dollar risk, R:R, breakeven, concentration warnings, and an 8-point pre-trade checklist.
 - **Trade Journal** — log trades, auto-computed P&L and R-multiples, win rate / expectancy / profit factor, equity curve, weekly P&L vs. target. CSV import/export. Stored in localStorage only.
 - **Canada Playbook** — TSX mechanics and liquidity filters, TFSA/CRA cautions for active traders, the 30-day superficial-loss rule, broker landscape, an evening routine for trading around a 9–5, and a phased roadmap (paper trade → small size → scale on proven stats).
+- **VCP One-Pager** (`vcp-plan.html`) — a printable one-page trading plan for the volatility contraction pattern on TSX daily charts: screening recipe, entry trigger, stop/management rules, and sizing worked for a small account. A template with rules — it names no securities.
 
 ## Run locally
 

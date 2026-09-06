@@ -56,6 +56,7 @@ body {
   font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
 }
 .tab-btn:hover { color: var(--text); }
+a.tab-btn, a.btn { text-decoration: none; display: inline-block; }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 
 .tab-panel { display: none; padding: 14px 0 30px; }
